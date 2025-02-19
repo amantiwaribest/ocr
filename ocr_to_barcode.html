@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OCR to Barcode</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+    <link rel="icon" href="https://i.postimg.cc/0N9HfhNy/image.png" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+</head>
+<body>
+    <div class="container">
+        <div class="camera-container surface">
+            <video id="video" playsinline autoplay></video>
+            <canvas id="canvas" style="display: none;"></canvas>
+            <img id="preview" style="display: none; width: 100%;" />
+            <div class="button-container">
+                <button id="startCamera">Start Camera</button>
+                <button id="capture" style="display: none;">Capture</button>
+                <button id="retake" style="display: none;">Retake Photo</button>
+                <button id="process" style="display: none;">Process Image</button>
+            </div>
+        </div>
+        
+        <div id="result" class="result-container surface">
+            <div id="loading" style="display: none;">
+                Processing image...<br>
+                This may take a few seconds
+            </div>
+            <pre id="rawExtractedText" style="text-align: center;"></pre>
+            <div class="detected-text-box text-container" style="max-height: none; overflow: visible;">
+                <label for="editableText" style="text-align: center; display: block;"><strong>EDITABLE STRING DETECTED BY OCR</strong></label>
+                <textarea id="editableText" class="text-box" style="width: 96%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"></textarea>
+            </div>
+            <div class="button-container">
+                <button id="generateBarcodes" class="generate-button" style="padding: 12px 24px; background: #012955; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; flex: 1; min-width: 120px;">Generate Barcodes</button>
+            </div>
+            <div id="barcodeContainer" style="margin-top: 0; margin-bottom: 10;"></div>
+        </div>
+    </div>
+
+    <div class="sticky-footer" style="position: fixed; bottom: 0; left: 0; right: 0; background: #012955; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100px; z-index: 1000; margin-top: 200px;">
+        <a href="https://wa.me/919648620970?text=Hi%20I%20need%20a%20help" class="whatsapp-button" target="_blank" style="margin-top: 10px; margin-bottom: 20px;">
+            <i class="fab fa-whatsapp"></i>
+            Need Help?
+        </a>
+        <div class="terminal-message" style="color: white; background: none; text-align: center;">
+            Made with a curious <i class="fas fa-brain"></i> and good <i class="fas fa-code"></i>, and <i class="fas fa-coffee"></i>.
+        </div>
+    </div>
+
+    <style>
+        :root {
+          --primary: #2563eb;
+          --primary-hover: #1d4ed8;
+          --surface: #ffffff;
+          --background: #f8fafc;
+          --text: #1e293b;
+          --text-light: #64748b;
+          --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+          --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+          --radius-md: 0.5rem;
+          --radius-lg: 1rem;
+        }
+
+        .surface {
+          background: var(--surface);
+          border-radius: var(--radius-md);
+          box-shadow: var(--shadow-sm);
+          transition: box-shadow 0.2s;
+        }
+
+        .surface:hover {
+          box-shadow: var(--shadow-md);
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            height: auto;
+            overflow: hidden;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .camera-container {
+            position: relative;
+            margin-bottom: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #video, #preview {
+            width: 100%;
+            background: #f0f0f0;
+            border-radius: 8px;
+        }
+        .button-container {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 0; /* Ensure no bottom margin */
+            padding-bottom: 0; /* Ensure no bottom padding */
+        }
+        button {
+            padding: 12px 24px;
+            background: #012955;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            flex: 1;
+            min-width: 120px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #generateBarcodes {
+            background: #012955;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            flex: 1;
+            min-width: 120px;
+        }
+        #generateBarcodes:hover {
+            background: #0056b3;
+        }
+        .result-container {
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+            font-size: 16px;
+        }
+        .detected-text-box {
+            background: #f8f9fa;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .text-box {
+            width: 100%;
+            font-family: monospace;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background: #f9f9f9;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .barcode-item {
+            margin-bottom: 40px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .text-label {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 16px;
+            font-family: monospace;
+        }
+        .error-text {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .loading-spinner {
+          display: inline-block;
+          width: 1.5rem;
+          height: 1.5rem;
+          margin-right: 0.5rem;
+          border: 2px solid rgba(255,255,255,0.3);
+          border-radius: 50%;
+          border-top-color: white;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        /* Add this to your process button when loading */
+        button.loading {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          pointer-events: none;
+          height: 100%; /* Ensure the button maintains height */
+        }
+
+        .sticky-footer {
+            position: fixed; /* Make footer sticky */
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #012955;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100px;
+            z-index: 1000; /* Ensure it stays above other content */
+            margin-top: 200px; /* Increase space above footer to 200px */
+        }
+
+        .terminal-message {
+          font-family: monospace;
+          color: white;
+          background: none;
+          text-align: center;
+          font-size: 12px;
+        }
+
+        @media (min-width: 768px) {
+            .terminal-message {
+                font-size: 12px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .terminal-message {
+                font-size: 14px;
+            }
+        }
+
+        .whatsapp-button {
+            color: #012955;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            padding: 8px 16px;
+            border-radius: 30px;
+            background: #FFFFFF;
+        }
+
+        .whatsapp-button:hover {
+            background-color: #0056b3;
+            color: #FFFFFF;
+        }
+
+        @media (min-width: 768px) {
+            .whatsapp-button {
+                font-size: 14px;
+                padding: 10px 20px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .whatsapp-button {
+                font-size: 16px;
+                padding: 12px 24px;
+            }
+        }
+
+        .whatsapp-button i {
+            font-size: 2em; /* Responsive size based on button size */
+        }
+
+        @media (max-width: 768px) {
+            html, body {
+                height: auto; /* Allow scrolling */
+                overflow: auto; /* Allow scrolling */
+            }
+            
+            textarea:focus {
+                scroll-margin-bottom: 100px; /* Adjust based on footer size */
+            }
+        }
+
+        .text-container {
+            max-height: 50vh; /* Adjust as needed */
+            overflow: auto;
+            padding-bottom: 0; /* Remove padding from text container */
+        }
+        
+        .generate-button {
+            margin-bottom: 0; /* Decrease space below the generate button */
+        }
+
+        #rawExtractedText {
+            font-size: 18px; /* Increase detected text size */
+        }
+
+        #editableText {
+            font-size: 25px; /* Set editable text size to 25px */
+            resize: none; /* Prevents unwanted resizing */
+        }
+
+        .text-container.editing-mode {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 15px;
+            z-index: 2000;
+            margin: 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .text-container.editing-mode #editableText {
+            height: calc(70vh - 60px);
+            min-height: 200px;
+            overflow-y: scroll !important;
+            margin-bottom: 10px;
+            padding: 15px;
+            font-size: 18px !important;
+            line-height: 1.5;
+            width: calc(100% - 30px);
+            -webkit-overflow-scrolling: touch;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        .text-container.editing-mode .edit-actions {
+            padding: 10px 0;
+            background: white;
+            border-top: 1px solid #eee;
+            margin-top: auto;
+        }
+
+        .editing-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1999;
+        }
+
+        .editing-overlay.active {
+            display: block;
+        }
+
+        .text-container.editing-mode + .sticky-footer {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 120px;
+                height: 100%;
+                position: relative;
+                overflow-y: auto !important;
+            }
+
+            .text-container {
+                transition: all 0.3s ease;
+            }
+
+            #editableText {
+                font-size: 16px;
+                line-height: 1.4;
+            }
+        }
+        
+        #barcodeContainer {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+    </style>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const preview = document.getElementById('preview');
+        const startButton = document.getElementById('startCamera');
+        const captureButton = document.getElementById('capture');
+        const retakeButton = document.getElementById('retake');
+        const processButton = document.getElementById('process');
+        const loading = document.getElementById('loading');
+        const detectedText = document.getElementById('detectedText');
+        const barcodeContainer = document.getElementById('barcodeContainer');
+        const editableText = document.getElementById('editableText');
+        const generateBarcodesButton = document.getElementById('generateBarcodes');
+        let stream = null;
+        let shouldGenerateBarcodes = false;
+        let originalPosition = null;
+
+        startButton.addEventListener('click', async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    }
+                });
+                video.srcObject = stream;
+                startButton.style.display = 'none';
+                captureButton.style.display = 'block';
+                video.style.display = 'block';
+                preview.style.display = 'none';
+                retakeButton.style.display = 'none';
+                processButton.style.display = 'none';
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                alert('Error accessing camera. Please make sure you have granted camera permissions.');
+            }
+        });
+
+        captureButton.addEventListener('click', () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            preview.src = canvas.toDataURL('image/jpeg');
+            video.style.display = 'none';
+            preview.style.display = 'block';
+            captureButton.style.display = 'none';
+            retakeButton.style.display = 'block';
+            processButton.style.display = 'block';
+        });
+
+        retakeButton.addEventListener('click', () => {
+            // Hide the preview and show the live video feed again
+            preview.style.display = 'none';
+            video.style.display = 'block';
+            
+            // Clear the canvas for the next capture
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Ensure the video stream remains active
+            if (stream) {
+                console.log('Stream is active:', stream);
+                video.srcObject = stream;
+                video.play(); // Ensure the video element is playing
+                console.log('Video source set to stream.');
+            } else {
+                console.log('No active stream found.');
+            }
+            
+            // Log video element properties
+            console.log('Video element:', video);
+            console.log('Video element source:', video.srcObject);
+            console.log('Video element display:', video.style.display);
+            
+            // Adjust button visibility
+            captureButton.style.display = 'block';
+            retakeButton.style.display = 'none';
+            processButton.style.display = 'none';
+        });
+
+        processButton.addEventListener('click', async () => {
+            loading.style.display = 'block';
+            editableText.value = "";
+            barcodeContainer.innerHTML = "";
+            processButton.classList.add('loading'); // Add loading class to process button
+            processButton.innerHTML = '<div class="loading-spinner" style="margin-right: 0.5rem; vertical-align: middle;"></div><span style="display: inline-block; vertical-align: middle; margin-top: -2px;">Processing...</span>'; // Update button text
+
+            try {
+                const result = await Tesseract.recognize(canvas, 'eng');
+                // Filter the extracted text to only include A-Z, 0-9, and dashes
+                editableText.value = result.data.text
+                    .replace(/[^A-Z0-9-\n]/g, '') // Allow uppercase letters, digits, dashes, and line breaks
+                    .trim(); // Set editable text
+                autoResize.call(editableText); // Call auto-resize after setting text
+            } catch (err) {
+                editableText.value = "Error: " + err.message;
+            } finally {
+                loading.style.display = 'none';
+                processButton.classList.remove('loading'); // Remove loading class from process button
+                processButton.innerHTML = 'Process Image'; // Reset button text
+                // Ensure the video stream remains active
+                if (stream) {
+                    video.srcObject = stream;
+                    video.play(); // Ensure the video element is playing
+                }
+                retakeButton.style.display = 'block';
+            }
+        });
+
+        // First, create a shared function for generating barcodes
+        function generateBarcodes() {
+            barcodeContainer.innerHTML = "";
+            let lines = editableText.value.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+            let barcodeCount = 1;
+
+            lines.forEach(line => {
+                const cleanedText = line.replace(/[^A-Z0-9-]/g, ''); // Allow uppercase letters, digits, and dashes
+                if (!cleanedText) return;
+
+                const barcodeDiv = document.createElement('div');
+                barcodeDiv.className = 'barcode-item';
+                barcodeDiv.style.marginBottom = '40px';
+                barcodeDiv.style.display = 'flex';
+                barcodeDiv.style.flexDirection = 'column';
+                barcodeDiv.style.alignItems = 'center';
+
+                const label = document.createElement('span');
+                label.style.display = 'block'; // Make label a block element
+                label.style.textAlign = 'center'; // Center the text
+                label.textContent = 'Barcode ' + barcodeCount;
+                barcodeDiv.appendChild(label);
+
+                const barcodeSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                barcodeSvg.setAttribute("width", "300");
+                barcodeSvg.setAttribute("height", "100");
+                barcodeDiv.appendChild(barcodeSvg);
+
+                barcodeContainer.appendChild(barcodeDiv);
+
+                JsBarcode(barcodeSvg, cleanedText, {
+                    format: "CODE128",
+                    width: 2,
+                    height: 100,
+                    displayValue: true
+                });
+
+                barcodeCount++;
+            });
+
+            // Scroll to show the barcodes
+            setTimeout(() => {
+                barcodeContainer.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+
+        // Main button event listener
+        generateBarcodesButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            generateBarcodes();
+        });
+
+        // Function to check if there is detected text
+        function checkDetectedText() {
+            if (editableText.value.trim() === '') {
+                generateBarcodesButton.disabled = true; // Disable button if no text
+            } else {
+                generateBarcodesButton.disabled = false; // Enable button if there is text
+            }
+        }
+
+        // Add event listener to the editable text area
+        editableText.addEventListener('input', checkDetectedText);
+
+        // Function to auto-resize the text area
+        function autoResize() {
+            this.style.height = 'auto'; // Reset height
+            this.style.height = this.scrollHeight + 'px'; // Set height to scroll height
+        }
+
+        // Add event listener for input
+        editableText.addEventListener('input', autoResize);
+
+        // Remove previous event listeners
+        const textContainer = document.querySelector('.text-container');
+        const footer = document.querySelector('.sticky-footer');
+
+        // Create overlay if it doesn't exist
+        const overlay = document.createElement('div');
+        overlay.className = 'editing-overlay';
+        document.body.appendChild(overlay);
+
+        // Prevent scroll propagation from textarea to body
+        editableText.addEventListener('touchmove', function(e) {
+            e.stopPropagation();
+        }, { passive: false });
+
+        editableText.addEventListener('focus', function() {
+            // Save current scroll position
+            originalPosition = window.scrollY;
+            
+            // Show overlay
+            overlay.classList.add('active');
+            
+            // Add editing mode class
+            textContainer.classList.add('editing-mode');
+            
+            // Hide footer
+            footer.style.display = 'none';
+            
+            let editActions = textContainer.querySelector('.edit-actions');
+            if (!editActions) {
+                editActions = document.createElement('div');
+                editActions.className = 'edit-actions';
+                editActions.style.cssText = `
+                    padding: 10px 0;
+                    background: white;
+                    border-top: 1px solid #eee;
+                    margin-top: auto;
+                    text-align: center;
+                    position: fixed;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    z-index: 2500;
+                `;
+                
+                const generateButton = document.createElement('button');
+                generateButton.className = 'generate-button';
+                generateButton.textContent = 'Generate Barcodes';
+                generateButton.style.cssText = `
+                    padding: 12px 24px;
+                    background: #012955;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-size: 16px;
+                    flex: 1;
+                    min-width: 120px;
+                    margin: 10px;
+                `;
+
+                // Add mousedown event to prevent blur
+                generateButton.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                });
+                
+                generateButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Generate barcodes
+                    barcodeContainer.innerHTML = "";
+                    let lines = editableText.value.split('\n')
+                        .map(line => line.trim())
+                        .filter(line => line.length > 0);
+                    
+                    let barcodeCount = 1;
+                    
+                    lines.forEach(line => {
+                        const cleanedText = line.replace(/[^A-Z0-9-]/g, ''); // Allow uppercase letters, digits, and dashes
+                        if (!cleanedText) return;
+                        
+                        const barcodeDiv = document.createElement('div');
+                        barcodeDiv.className = 'barcode-item';
+                        barcodeDiv.style.marginBottom = '40px';
+                        barcodeDiv.style.display = 'flex';
+                        barcodeDiv.style.flexDirection = 'column';
+                        barcodeDiv.style.alignItems = 'center';
+                        
+                        const label = document.createElement('span');
+                        label.style.display = 'block'; // Make label a block element
+                        label.style.textAlign = 'center'; // Center the text
+                        label.textContent = 'Barcode ' + barcodeCount;
+                        barcodeDiv.appendChild(label);
+                        
+                        const barcodeSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                        barcodeSvg.setAttribute("width", "300");
+                        barcodeSvg.setAttribute("height", "100");
+                        barcodeDiv.appendChild(barcodeSvg);
+                        
+                        barcodeContainer.appendChild(barcodeDiv);
+                        
+                        JsBarcode(barcodeSvg, cleanedText, {
+                            format: "CODE128",
+                            width: 2,
+                            height: 100,
+                            displayValue: true
+                        });
+                        
+                        barcodeCount++;
+                    });
+                    
+                    // After generating barcodes, manually close the overlay
+                    setTimeout(() => {
+                        textContainer.classList.remove('editing-mode');
+                        overlay.classList.remove('active');
+                        footer.style.display = 'flex';
+                        document.body.style.overflow = 'auto';
+                        
+                        // Remove edit actions
+                        if (editActions.parentNode) {
+                            editActions.parentNode.removeChild(editActions);
+                        }
+                        
+                        // Scroll to barcodes
+                        barcodeContainer.scrollIntoView({ behavior: 'smooth' });
+                    }, 100);
+                });
+                
+                editActions.appendChild(generateButton);
+                document.body.appendChild(editActions);
+            }
+            
+            // Prevent body scroll
+            document.body.style.overflow = 'hidden';
+            
+            // Enable scrolling immediately
+            this.style.overflow = 'scroll';
+            this.style.webkitOverflowScrolling = 'touch';
+        });
+
+        editableText.addEventListener('blur', function() {
+            // Remove editing mode class
+            textContainer.classList.remove('editing-mode');
+            
+            // Hide overlay
+            overlay.classList.remove('active');
+            
+            // Show footer
+            footer.style.display = 'flex';
+            
+            // Remove edit actions container
+            const editActions = document.querySelector('.edit-actions');
+            if (editActions && editActions.parentNode) {
+                editActions.parentNode.removeChild(editActions);
+            }
+            
+            // Restore body scroll
+            document.body.style.overflow = 'auto';
+            
+            // Restore scroll position
+            if (originalPosition !== null) {
+                window.scrollTo({
+                    top: originalPosition,
+                    behavior: 'smooth'
+                });
+            }
+        });
+
+        // Modify the overlay click event handler
+        overlay.addEventListener('click', (e) => {
+            // Only close if clicking directly on the overlay, not its children
+            if (e.target === overlay) {
+                editableText.blur();
+            }
+        });
+
+        // Remove previous resize event listeners
+        window.removeEventListener("resize", function () {
+            if (window.innerHeight < 500) {
+                document.body.style.paddingBottom = "200px"; 
+            } else {
+                document.body.style.paddingBottom = "0px"; 
+            }
+        });
+
+        window.removeEventListener("resize", function () {
+            let textContainer = document.querySelector(".text-container");
+            if (window.innerHeight < 500) {
+                textContainer.style.marginBottom = "150px";
+            } else {
+                textContainer.style.marginBottom = "0px"; 
+            }
+        });
+    </script>
+</body>
+</html>
