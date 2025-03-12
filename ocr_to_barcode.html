@@ -1,0 +1,3176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OCR to Barcode</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+    <link rel="icon" href="https://i.postimg.cc/0N9HfhNy/image.png" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+    <link rel="import" href="progressBar.html">
+</head>
+<body>
+    <div class="container">
+        <div class="camera-container surface">
+            <div class="main-buttons">
+                <button id="startCamera" class="app-button start-camera-btn">
+                    <span class="icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                    </span>
+                    Start Camera
+                </button>
+                <button id="uploadImage" class="app-button upload-image-btn">
+                    <span class="icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                    </span>
+                    Upload Image
+                </button>
+                <input type="file" id="imageInput" accept="image/*" multiple style="display: none;">
+            </div>
+            <div class="video-wrapper">
+                <video id="video" playsinline autoplay></video>
+                <img id="preview" style="display: none;" />
+            </div>
+            <canvas id="canvas" style="display: none;"></canvas>
+            <div class="camera-controls">
+                <button id="capture" class="app-button capture-btn" style="display: none;">
+                    <span class="icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </span>
+                    Capture
+                </button>
+                <button id="retake" class="app-button retake-photo-btn" style="display: none;">
+                    <span class="icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 4v6h6"></path>
+                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                        </svg>
+                    </span>
+                    Retake Photo
+                </button>
+                <button id="process" class="app-button process-image-btn" style="display: none;">
+                    <span class="icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                        </svg>
+                    </span>
+                    Process Image
+                </button>
+            </div>
+        </div>
+        
+        <div class="progress-container" style="display: none;">
+            <div class="progress-header">
+                <div class="progress-status">
+                    <div class="gear-container">
+                        <svg class="gear" viewBox="0 0 24 24">
+                            <path class="gear-path" d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"></path>
+                        </svg>
+                        <svg class="gear-inner" viewBox="0 0 24 24">
+                            <path class="gear-inner-path" d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"></path>
+                        </svg>
+                    </div>
+                    <span>Processing image</span>
+                </div>
+                <div class="progress-percentage">0%</div>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar"></div>
+            </div>
+            <div class="progress-details">
+                <div class="file-info">
+                    <span class="file-name"></span>
+                    <span class="file-size"></span>
+                </div>
+                <div class="estimated-time">Est. time: <span id="time-remaining">30s</span></div>
+            </div>
+            <div class="progress-complete-indicator">
+                <svg class="checkmark" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z" fill="#0056B3"/>
+                </svg>
+                <span>Processing complete!</span>
+            </div>
+        </div>
+        <div class="progress-backdrop"></div>
+        
+        <div id="result" class="result-container surface">
+            <div id="loading" style="display: none;">
+                Processing image...<br>
+                This may take a few seconds
+            </div>
+            <div class="detected-text-box text-container" style="max-height: none; overflow: visible;">
+                <div style="text-align: center; margin: 0;">
+                    <label for="editableText" class="scramble-text">EDITABLE STRING DETECTED BY OCR</label>
+                </div>
+                <div class="button-row">
+                    <button id="clearText" class="control-button">
+                        <i class="fas fa-undo-alt"></i>
+                        <span class="reset-label">RESET TEXT</span>
+                    </button>
+                    <div class="control-button">
+                        <label class="switch">
+                            <input type="checkbox" id="reverseOrder">
+                            <span class="slider round"></span>
+                        </label>
+                        <span class="toggle-label">ORIGNAL ORDER</span>
+                    </div>
+                </div>
+                <textarea id="editableText" class="text-box"></textarea>
+            </div>
+            <div class="button-container">
+                <button id="generateBarcodes" class="app-button generate-barcode-btn">
+                    <span class="icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 5v14M8 5v14M12 5v14M17 5v14M21 5v14"></path>
+                        </svg>
+                    </span>
+                    Generate Barcodes
+                </button>
+            </div>
+            <div id="barcodeContainer" style="margin-top: 0; margin-bottom: 10;"></div>
+        </div>
+    </div>
+
+    <div class="sticky-footer" style="position: fixed; bottom: 0; left: 0; right: 0; background: #012955; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100px; z-index: 1000; margin-top: 200px;">
+        <a href="https://wa.me/919648620970?text=Hi%20I%20need%20a%20help" class="whatsapp-button" target="_blank" style="margin-top: 10px; margin-bottom: 20px;">
+            <i class="fab fa-whatsapp"></i>
+            Need Help?
+        </a>
+        <div class="terminal-message" style="color: white; background: none; text-align: center;">
+            Made with a curious <i class="fas fa-brain"></i> and good <i class="fas fa-code"></i>, and <i class="fas fa-coffee"></i>.
+        </div>
+    </div>
+
+    <style>
+        :root {
+          --primary: #2563eb;
+          --primary-hover: #1d4ed8;
+          --surface: #ffffff;
+          --background: #f8fafc;
+          --text: #1e293b;
+          --text-light: #64748b;
+          --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+          --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+          --radius-md: 0.5rem;
+          --radius-lg: 1rem;
+        }
+
+        .surface {
+          background: var(--surface);
+          border-radius: var(--radius-md);
+          box-shadow: var(--shadow-sm);
+          transition: box-shadow 0.2s;
+        }
+
+        .surface:hover {
+          box-shadow: var(--shadow-md);
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            height: auto;
+            overflow: hidden;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* Reduced from 15px */
+            padding-bottom: 100px; /* Space for footer */
+        }
+        .camera-container {
+            position: relative;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 0; /* Remove margin and use container gap instead */
+        }
+        .video-wrapper {
+            display: none; /* Hide by default */
+            margin: 0 0 15px 0; /* Add bottom margin */
+        }
+        .camera-container.active .video-wrapper {
+            display: block;
+            margin-top: 15px; /* Add space only when visible */
+        }
+        .button-container {
+            margin: 15px 0;
+            padding: 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            z-index: 100;
+            position: relative; /* Changed from sticky to relative */
+            background: transparent; /* Changed from white to transparent */
+        }
+        button {
+            padding: 12px 24px;
+            background: #012955;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            flex: 1;
+            min-width: 120px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #generateBarcodes {
+            background: #012955;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            flex: 1;
+            min-width: 120px;
+            position: relative; /* Changed from sticky to relative */
+            margin: 5px 0; /* Only 5px vertical margins */
+        }
+        #generateBarcodes:hover {
+            background: #0056b3;
+        }
+        .result-container {
+            padding: 15px;
+            margin: 0; /* Keep bottom margin for footer, remove others */
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+            font-size: 16px;
+        }
+        .detected-text-box {
+            background: #f8f9fa;
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin: 0;
+        }
+        .text-box {
+            width: calc(100% - 20px) !important; /* Account for padding */
+            margin: 0 auto; /* Center the textarea */
+            font-family: monospace;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background: #f9f9f9;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .barcode-item {
+            margin-bottom: 15px; /* Reduced from 40px */
+            padding: 15px; /* Reduced from 40px */
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .barcode-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 5px; /* Further reduced padding for last item */
+        }
+
+        .text-label {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 16px;
+            font-family: monospace;
+        }
+        .error-text {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .loading-spinner {
+          display: inline-block;
+          width: 1.5rem;
+          height: 1.5rem;
+          margin-right: 0.5rem;
+          border: 2px solid rgba(255,255,255,0.3);
+          border-radius: 50%;
+          border-top-color: white;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        /* Add this to your process button when loading */
+        button.loading {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          pointer-events: none;
+          height: 100%; /* Ensure the button maintains height */
+        }
+
+        .sticky-footer {
+            position: fixed; /* Make footer sticky */
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #012955;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100px;
+            z-index: 1000; /* Ensure it stays above other content */
+            margin-top: 200px; /* Increase space above footer to 200px */
+        }
+
+        .terminal-message {
+          font-family: monospace;
+          color: white;
+          background: none;
+          text-align: center;
+          font-size: 12px;
+        }
+
+        @media (min-width: 768px) {
+            .terminal-message {
+                font-size: 12px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .terminal-message {
+                font-size: 14px;
+            }
+        }
+
+        .whatsapp-button {
+            color: #012955;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            padding: 8px 16px;
+            border-radius: 30px;
+            background: #FFFFFF;
+        }
+
+        .whatsapp-button:hover {
+            background-color: #0056b3;
+            color: #FFFFFF;
+        }
+
+        @media (min-width: 768px) {
+            .whatsapp-button {
+                font-size: 14px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .whatsapp-button {
+                font-size: 16px;
+            }
+        }
+
+        .whatsapp-button i {
+            font-size: 2em; /* Responsive size based on button size */
+        }
+
+        @media (max-width: 768px) {
+            html, body {
+                height: auto; /* Allow scrolling */
+                overflow: auto; /* Allow scrolling */
+            }
+            
+            textarea:focus {
+                scroll-margin-bottom: 100px; /* Adjust based on footer size */
+            }
+        }
+
+        .text-container {
+            max-height: 50vh; /* Adjust as needed */
+            overflow: auto;
+            padding-bottom: 0; /* Remove bottom padding */
+            position: relative; /* Add this to contain the button */
+            margin-bottom: 5px; /* Minimal margin */
+        }
+        
+        .generate-button {
+            margin-bottom: 0; /* Decrease space below the generate button */
+        }
+
+        #rawExtractedText {
+            font-size: 18px; /* Increase detected text size */
+        }
+
+        #editableText {
+            font-size: 25px; /* Set editable text size to 25px */
+            resize: none; /* Prevents unwanted resizing */
+        }
+
+        .text-container.editing-mode {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 10px; /* Reduced from 15px to match main container */
+            z-index: 2000;
+            margin: 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            height: 55vh; /* Reduced from 60vh */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* This will push content to edges */
+            padding-bottom: 80px; /* Increased from 70px */
+        }
+
+        .text-container.editing-mode #editableText {
+            height: calc(100% - 120px) !important; /* Increased space for button and padding */
+            min-height: unset; /* Remove min-height */
+            overflow-y: auto !important;
+            margin-bottom: 20px; /* Increased from 5px */
+            padding: 10px; /* Match main page padding */
+            font-size: 18px !important;
+            line-height: 1.5;
+            width: calc(100% - 30px);
+            -webkit-overflow-scrolling: touch;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fff;
+            flex: 1; /* Take up available space */
+        }
+
+        .text-container.editing-mode .edit-actions {
+            padding: 0; /* Remove padding */
+            background: white;
+            border-top: 1px solid #eee;
+            margin-top: 0; /* Remove top margin */
+            text-align: center;
+            position: fixed;
+            bottom: 20px; /* Increased from 15px */
+            left: 0;
+            right: 0;
+            z-index: 2500;
+            margin: 0; /* Remove any margin */
+            padding-top: 5px; /* Small padding at top */
+        }
+
+        .editing-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1999;
+        }
+
+        .editing-overlay.active {
+            display: block;
+        }
+
+        .text-container.editing-mode + .sticky-footer {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 120px;
+                height: 100%;
+                position: relative;
+                overflow-y: auto !important;
+            }
+
+            .text-container {
+                transition: all 0.3s ease;
+            }
+
+            #editableText {
+                font-size: 16px;
+                line-height: 1.4;
+            }
+        }
+        
+        #barcodeContainer {
+            margin: 10px 0 0 0; /* Reduced top margin */
+        }
+
+        /* Remove bottom margin from last barcode item */
+        .barcode-item:last-child {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+            .result-container {
+                margin-bottom: 100px; /* Reduced from 140px */
+            }
+        }
+
+        /* Add styles for upload button to match other buttons */
+        #uploadImage {
+            padding: 12px 24px;
+            background: #012955;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        #uploadImage:hover {
+            background: #0056b3;
+        }
+
+        /* Enhanced Progress Bar Styles */
+        .upload-progress {
+            margin: 15px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #012955;
+            font-weight: 600;
+            font-size: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 4px;
+        }
+
+        .progress-bar {
+            height: 16px; /* Increased height */
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #progressFill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(
+                90deg,
+                #012955 0%,
+                #1e40af 50%,
+                #012955 100%
+            );
+            background-size: 200% 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease-in-out; /* Smooth transition */
+            position: relative;
+            animation: gradientShift 2s linear infinite;
+        }
+
+        #progressFill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.4) 50%,
+                transparent 100%
+            );
+            animation: shine 1.5s ease-in-out infinite;
+        }
+
+        @keyframes gradientShift {
+            0% {
+                background-position: 100% 0;
+            }
+            100% {
+                background-position: -100% 0;
+            }
+        }
+
+        @keyframes shine {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(200%);
+            }
+        }
+
+        /* Add pulse animation to progress text */
+        .progress-text span {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* Mobile optimization for progress bar */
+        @media (max-width: 768px) {
+            .upload-progress {
+                margin: 10px 0;
+                padding: 15px;
+            }
+
+            .progress-text {
+                font-size: 14px;
+                margin-bottom: 12px;
+            }
+
+            .progress-bar {
+                height: 12px; /* Increased height for mobile */
+            }
+        }
+
+        .order-toggle {
+            display: flex;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .slider.round {
+            border-radius: 24px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+
+        .clear-button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .clear-button:hover {
+            background: #c82333;
+        }
+
+        .control-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            height: 40px;  /* Adjusted height */
+            border-radius: 12px;  /* Increased roundness */
+            font-size: 16px;  /* Unified font size */
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            background: linear-gradient(135deg, #ff6b6b, #ff4757);  /* Gradient background */
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            min-width: 140px; /* Set fixed width for both buttons */
+            width: 140px; /* Ensure both buttons have same width */
+        }
+
+        .control-button:hover {
+            background: linear-gradient(135deg, #ff4757, #ff6b6b);  /* Hover effect */
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        input:checked + .slider {
+            background-color: #4caf50;  /* Green background when checked */
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .slider:active:before {
+            width: 34px;
+        }
+
+        /* Responsive styles for buttons */
+        @media (max-width: 600px) {
+            .control-button {
+                font-size: 14px;
+                padding: 8px 16px;
+                height: 36px;
+            }
+
+            .toggle-label {
+                font-size: 14px;  /* Match font size with control button */
+            }
+
+            .switch {
+                width: 50px;
+                height: 28px;
+            }
+
+            .slider:before {
+                height: 22px;
+                width: 22px;
+                left: 3px;
+                bottom: 3px;
+            }
+
+            input:checked + .slider:before {
+                transform: translateX(22px);
+            }
+        }
+
+        @media (min-width: 601px) and (max-width: 1024px) {
+            .control-button {
+                font-size: 15px;
+                padding: 9px 18px;
+                height: 38px;
+            }
+
+            .toggle-label {
+                font-size: 15px;  /* Match font size with control button */
+            }
+
+            .switch {
+                width: 55px;
+                height: 30px;
+            }
+
+            .slider:before {
+                height: 24px;
+                width: 24px;
+                left: 3px;
+                bottom: 3px;
+            }
+
+            input:checked + .slider:before {
+                transform: translateX(24px);
+            }
+        }
+
+        .control-button.compact-button {
+            height: 34px;
+            padding: 0 16px;
+            width: auto;
+            min-width: 110px;
+            max-width: 130px;
+        }
+
+        label[for="editableText"] {
+            width: auto;
+            position: static;
+            transform: none;
+            text-align: center;
+        }
+
+        .switch {
+            transform: scale(0.9);
+            margin-right: 4px;
+        }
+
+        .toggle-label {
+            font-size: 13px;
+        }
+
+        .ocr-header {
+            text-align: center;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .button-row {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+
+        .control-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 32px;
+            padding: 0 12px;
+            border-radius: 30px;
+            font-size: 13px;
+            background: #FFFFFF;
+            color: #012955;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 0 1 100px;
+            min-width: 100px;
+            max-width: 100px;
+        }
+
+        .control-button:hover {
+            background: #f8f9fa;
+        }
+
+        #clearText:hover {
+            color: #dc3545;
+        }
+
+        .switch {
+            transform: scale(0.85);
+        }
+
+        .toggle-label {
+            font-size: 13px;
+            margin-left: 4px;
+        }
+
+        .button-row .control-button {
+            flex: 1;           /* Stretch each button equally */
+            min-width: 0;      /* Remove fixed min/max width */
+            max-width: none;
+            height: 45px;      /* Increase button height a bit */
+            font-size: 16px;   /* Increase font size */
+            padding: 0px;   /* Increase horizontal padding */
+        }
+
+        #clearText,
+        .button-row .control-button { 
+            font-size: 16px;  /* Set a uniform font size */
+            text-align: center; 
+        }
+        
+        #clearText {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #clearText i {
+            margin-right: 5px; /* Equal spacing between icon and text */
+        }
+
+        .toggle-label {
+            font-size: 16px; /* Increase from 13px/14px */
+        }
+
+        @media (max-width: 600px) {
+            .button-row .control-button {
+                font-size: 14px;
+                height: 40px;
+                padding: 0 10px;
+            }
+            #clearText i {
+                margin-right: 4px;
+                font-size: 14px;
+            }
+            #clearText {
+                font-size: 14px;
+            }
+            .toggle-label {
+                font-size: 14px;
+            }
+        }
+
+        @media (min-width: 601px) and (max-width: 1024px) {
+            .button-row .control-button {
+                font-size: 15px;
+                height: 43px;
+                padding: 0 15px;
+            }
+            #clearText i {
+                margin-right: 5px;
+                font-size: 15px;
+            }
+            #clearText {
+                font-size: 15px;
+            }
+            .toggle-label {
+                font-size: 15px;
+            }
+        }
+
+        #clearText,
+        .button-row .control-button {
+            font-size: 16px !important;
+            text-align: center !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #clearText i {
+            font-size: 16px !important;
+            margin-right: 5px;
+        }
+
+        #clearText {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 16px !important;
+            text-align: center !important;
+            font-family: inherit !important;
+        }
+        #clearText i {
+            font-size: 16px !important;
+            margin-right: 5px !important;
+        }
+        .button-row .control-button {
+            font-size: 16px !important;
+            text-align: center !important;
+            font-family: inherit !important;
+        }
+
+        #clearText {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 4px;
+            line-height: 1;
+        }
+        #clearText i {
+            display: inline-flex;
+            vertical-align: middle;
+            margin-right: 4px;
+        }
+
+        #clearText {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            line-height: 1;
+        }
+        #clearText i {
+            margin-right: 2px !important;
+            display: inline-flex;
+            vertical-align: middle;
+        }
+
+        #clearText {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            height: 45px !important; /* match the button row height */
+        }
+        #clearText i {
+            margin-right: 2px !important;
+            display: flex;
+            align-items: center;
+        }
+
+        .button-row {
+            align-items: center !important;
+        }
+        
+        #clearText {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            height: 45px;           /* Fixed height to match button row */
+            padding: 0 12px;        /* Optional: adjust horizontal padding */
+        }
+        
+        #clearText i {
+            margin-right: 2px !important;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        #clearText .reset-label {
+            display: inline-block;
+            transform: translateY(-3px);
+        }
+
+        .button-row {
+            align-items: center;
+        }
+        #clearText {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            height: 45px;           /* Fixed height */
+            padding: 0 12px;
+            line-height: 45px;      /* Match height for vertical centering */
+        }
+        #clearText i {
+            margin-right: 2px !important;
+            display: inline-flex;
+            align-items: center;
+        }
+        #clearText .reset-label {
+            display: inline-block;
+            line-height: 45px; /* Centers text vertically */
+        }
+
+        .control-button {
+            height: 45px !important;
+            line-height: 45px !important;
+        }
+        #clearText {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            height: 100%; /* Inherit from .control-button */
+            padding: 0 12px;
+            line-height: inherit;
+        }
+        #clearText .reset-label {
+            display: inline-block;
+            line-height: inherit;
+        }
+
+        /* Ensure all control buttons use the same height, font-size, and line-height */
+        .control-button {
+            height: 45px;
+            line-height: 45px;
+            font-size: 16px;
+        }
+        /* Reset button styling */
+        #clearText {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 45px;
+            padding: 0 12px;
+        }
+        #clearText i {
+            margin-right: 4px; /* Adds a little distance */
+            font-size: 16px;
+        }
+        #clearText .reset-label {
+            display: inline-block;
+            vertical-align: middle;
+            line-height: 45px; /* Centers text vertically */
+        }
+        /* Original Order label styling for consistency */
+        .toggle-label {
+            font-size: 16px;
+            line-height: 45px;
+            vertical-align: middle;
+        }
+
+        /* Ensure both control buttons have the same fixed width */
+        .button-row .control-button {
+            width: 140px;
+        }
+
+        /* Modify Reset button label to move it lower */
+        #clearText .reset-label {
+            display: inline-block;
+            line-height: 45px;
+            transform: translateY(2px);
+        }
+
+        /* Ensure both control buttons use the same horizontal padding */
+        .button-row .control-button {
+            padding: 0 15px !important;
+        }
+
+        /* Center the reset text label vertically and increase gap with icon */
+        #clearText .reset-label {
+            transform: none; /* remove vertical shift */
+            line-height: 45px; /* use container height for proper centering */
+        }
+        #clearText i {
+            margin-right: 6px; /* increase spacing between icon and label */
+        }
+
+        /* Move the reset button icon slightly to the left */
+        #clearText i {
+            transform: translateX(-2px);
+        }
+
+        /* Remove the browser's focus outline for the toggle switch */
+        .switch input:focus {
+            outline: none;
+            box-shadow: none;
+        }
+
+        /* Disable mobile tap highlight in the toggle area */
+        .switch, .switch * {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Disable tap highlight color on the entire control button and its children */
+        .button-row .control-button,
+        .button-row .control-button *,
+        .toggle-label {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            user-select: none;
+        }
+
+        /* Add active state feedback instead */
+        .button-row .control-button:active {
+            background: #f0f0f0;
+        }
+
+        /* Adjust OCR label spacing */
+        .detected-text-box > div:first-child {
+            margin: 0;
+            padding: 5px 0;  /* Add minimal padding instead of margin */
+        }
+
+        /* Reduce bottom margin of container */
+        .button-row {
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+
+        /* Increase default textarea size */
+        #editableText {
+            min-height: 150px; /* Add minimum height */
+            height: auto; /* Allow growth */
+        }
+        /* Hide camera container by default */
+        .camera-container {
+            display: none; /* Hide by default */
+        }
+
+        /* Show camera container when active */
+        .camera-container.active {
+            display: block;
+        }
+
+        /* Adjust spacing when container is hidden */
+        .button-container:first-child {
+            margin-bottom: 20px;
+        }
+
+        /* Add style to hide controls in editing mode */
+        .text-container.editing-mode .button-row {
+            display: none;
+        }
+
+        /* Modify camera container styles */
+        .camera-container {
+            display: block; /* Show container by default */
+        }
+        
+        /* Only hide the video and preview elements by default */
+        .camera-container #video,
+        .camera-container #preview {
+            display: none;
+        }
+
+        /* Show main action buttons in a fixed container */
+        .main-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        /* Adjust other button container visibility */
+        .camera-controls {
+            display: none; /* Hide by default */
+        }
+
+        .camera-container.active .camera-controls {
+            display: flex; /* Show when active */
+        }
+
+        /* Add spacing for camera controls */
+        .camera-controls {
+            display: none;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        /* Add bottom margin to video/preview container */
+        #video, #preview {
+            margin: 0;
+        }
+
+        /* Fix process button text alignment */
+        #process.loading {
+            min-height: 45px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #process.loading span {
+            display: inline-block;
+            vertical-align: middle;
+            line-height: normal;
+        }
+
+        #process.loading .loading-spinner {
+            margin-bottom: 0;
+        }
+        /* Adjust main-buttons spacing */
+        .main-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px; /* Match container padding */
+        }
+
+        /* Fix camera container padding */
+        .camera-container {
+            padding: 10px;
+        }
+
+        /* Fix process button loading state */
+        #process {
+            height: 45px;
+            min-height: 45px;
+            max-height: 45px;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        #process.loading {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #process.loading span {
+            position: relative;
+            top: 0;
+            margin: 0;
+        }
+
+        #process.loading .loading-spinner {
+            margin: 0 8px 0 0;
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Keep camera controls spacing consistent */
+        .camera-controls {
+            margin-top: 10px;
+            gap: 10px;
+        }
+
+        /* Fix camera container padding and spacing */
+        .camera-container {
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .main-buttons {
+            margin: 0 0 10px 0;
+        }
+
+        #video, #preview {
+            margin: 0;
+        }
+
+        /* Fix process button text alignment */
+        #process.loading {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            height: 45px !important;
+            padding: 0 24px;
+        }
+
+        #process.loading span,
+        #process.loading .loading-spinner {
+            margin: 0;
+            line-height: normal;
+        }
+
+        #process.loading .loading-spinner {
+            margin-right: 8px;
+        }
+
+        /* Adjust barcode container spacing */
+        .generate-button {
+            margin-bottom: 0;
+        }
+
+        #barcodeContainer {
+            margin: 15px 0 0 0;
+        }
+
+        .barcode-item {
+            margin-bottom: 40px;
+        }
+
+        .barcode-item:last-child {
+            margin-bottom: 0 !important;
+        }
+
+        /* Fix consistent spacing for main buttons */
+        .main-buttons {
+            display: flex;
+            gap: 10px;
+            padding: 0;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+
+        /* Remove extra margins from camera container */
+        .camera-container {
+            padding: 0;
+            margin-bottom: 10px;
+        }
+
+        /* Ensure video controls have consistent spacing */
+        .camera-controls {
+            padding: 0 10px 10px 10px;
+        }
+
+        /* Adjust video/preview spacing */
+        #video, #preview {
+            margin: 0 10px;
+        }
+
+        /* Make video feed container match result container style */
+        .camera-container {
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+        }
+
+        /* Center video feed */
+        #video, #preview {
+            width: 100%;
+            border-radius: 5px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+        }
+
+        /* Match button container styles */
+        .camera-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+        .camera-controls button {
+            padding: 12px 24px;
+            background: #012955;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        /* Match main buttons style */
+        .main-buttons {
+            display: flex;
+            gap: 10px;
+            padding: 0;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+
+        /* Ensure video feed is centered */
+        .camera-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+        }
+
+        /* Fix video element sizing and centering */
+        #video, #preview {
+            width: calc(100% - 20px);
+            max-width: 100%;
+            margin: 10px auto;
+            border-radius: 5px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            display: block;
+        }
+
+        /* Keep controls centered */
+        .main-buttons,
+        .camera-controls {
+            width: calc(100% - 20px);
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        /* Fixed camera container layout */
+        .camera-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+        }
+
+        /* Video feed wrapper for consistent width */
+        .video-wrapper {
+            width: calc(100% - 20px);
+            margin: 10px auto;
+        }
+
+        /* Video and preview sizing */
+        #video, #preview {
+            width: 100%;
+            border-radius: 5px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            margin: 0;
+            display: block;
+        }
+
+        /* Match button containers to video width */
+        .main-buttons,
+        .camera-controls {
+            width: calc(100% - 20px);
+            margin: 10px auto;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        /* Ensure buttons fill container width */
+        .main-buttons button,
+        .camera-controls button {
+            flex: 1;
+            margin: 0;
+        }
+
+        /* Fixed container padding styles */
+        .camera-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 5px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+        }
+
+        /* Main buttons container */
+        .main-buttons {
+            width: calc(100% - 10px);
+            margin: 5px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        /* Video wrapper positioning */
+        .video-wrapper {
+            width: calc(100% - 10px);
+            margin: 5px;
+        }
+
+        /* Camera controls positioning */
+        .camera-controls {
+            width: calc(100% - 10px);
+            margin: 5px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        /* Update result container padding */
+        .result-container {
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 40px; /* Further reduced from 60px */
+        }
+
+        /* Update mobile-specific styles */
+        @media (max-width: 768px) {
+            .result-container {
+                margin-bottom: 10px; /* Reduced from 100px */
+                padding-bottom: 5px; /* Add minimal padding */
+            }
+
+            .barcode-item {
+                margin-bottom: 10px; /* Smaller margins on mobile */
+                padding: 10px; /* Reduced padding on mobile */
+            }
+
+            .barcode-item:last-child {
+                margin-bottom: 0;
+                padding-bottom: 5px;
+            }
+
+            #barcodeContainer {
+                margin: 10px 0 5px 0; /* Reduced margins on mobile */
+            }
+
+            .container {
+                padding-bottom: 20px; /* Reduced padding for mobile */
+            }
+        }
+
+        /* Update footer spacing */
+        .sticky-footer {
+            padding: 15px 0; /* Add vertical padding to footer */
+        }
+
+        .whatsapp-button {
+            margin: 15px 0; /* Increase margin above and below whatsapp button */
+        }
+
+        .terminal-message {
+            padding: 10px 0; /* Add padding above and below footer text */
+        }
+
+        /* Ensure footer height adjusts to content */
+        @media (max-width: 768px) {
+            .sticky-footer {
+                height: auto; /* Allow height to adjust to content */
+                min-height: 100px; /* Maintain minimum height */
+                padding: 10px 0; /* Slightly less padding on mobile */
+            }
+            
+            .whatsapp-button {
+                margin: 12px 0; /* Slightly less margin on mobile */
+            }
+            
+            .terminal-message {
+                padding: 8px 0; /* Slightly less padding on mobile */
+            }
+        }
+
+        /* Enhanced Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 8px;  /* Decreased roundness */
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        input:checked + .slider {
+            background-color: #012955;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .slider:active:before {
+            width: 34px;
+        }
+
+        /* Responsive styles for buttons */
+        @media (max-width: 600px) {
+            .control-button {
+                font-size: 12px;
+                padding: 8px 16px;
+                height: 36px;
+            }
+
+            .toggle-label {
+                font-size: 16px;
+            }
+
+            .switch {
+                width: 50px;
+                height: 28px;
+            }
+
+            .slider:before {
+                height: 22px;
+                width: 22px;
+                left: 3px;
+                bottom: 3px;
+            }
+
+            input:checked + .slider:before {
+                transform: translateX(22px);
+            }
+        }
+
+        @media (min-width: 601px) and (max-width: 1024px) {
+            .control-button {
+                font-size: 13px;
+                padding: 9px 18px;
+                height: 38px;
+            }
+
+            .toggle-label {
+                font-size: 13px;
+            }
+
+            .switch {
+                width: 55px;
+                height: 30px;
+            }
+
+            .slider:before {
+                height: 24px;
+                width: 24px;
+                left: 3px;
+                bottom: 3px;
+            }
+
+            input:checked + .slider:before {
+                transform: translateX(24px);
+            }
+        }
+
+        /* Add animation for the OCR detected text */
+        @keyframes fadeInOut {
+            0%, 100% {
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+
+        .animated-text {
+            animation: fadeInOut 2s infinite;
+        }
+
+        /* Add styles for the OCR detected text animation */
+        .scramble-text {
+            display: block; /* Change to block to center properly */
+            font-weight: bold;
+            font-size: 16px; /* Increase font size */
+            margin: 0 auto; /* Center the text */
+            text-align: center; /* Ensure text is centered */
+        }
+
+        /* Enhanced Button Styles */
+        .main-buttons button,
+        .camera-controls button,
+        .generate-button,
+        .edit-actions .generate-button {
+            position: relative;
+            background-color: #012955;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 14px 22px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(1, 41, 85, 0.25);
+            min-width: 160px;
+            height: 45px; /* Ensure consistent height */
+        }
+
+        /* Hover Effect */
+        .main-buttons button:hover,
+        .camera-controls button:hover,
+        .generate-button:hover,
+        .edit-actions .generate-button:hover {
+            box-shadow: 0 6px 15px rgba(1, 41, 85, 0.35);
+            background-color: #01346e;
+        }
+
+        /* Active/Click Effect */
+        .main-buttons button:active,
+        .camera-controls button:active,
+        .generate-button:active,
+        .edit-actions .generate-button:active {
+            box-shadow: 0 2px 8px rgba(1, 41, 85, 0.3);
+        }
+
+        /* Ripple Effect */
+        .main-buttons button::after,
+        .camera-controls button::after,
+        .generate-button::after,
+        .edit-actions .generate-button::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            border-radius: 100%;
+            transform: scale(1, 1) translate(-50%);
+            transform-origin: 50% 50%;
+        }
+
+        .main-buttons button:focus:not(:active)::after,
+        .camera-controls button:focus:not(:active)::after,
+        .generate-button:focus:not(:active)::after,
+        .edit-actions .generate-button:focus:not(:active)::after {
+            animation: ripple 1s ease-out;
+        }
+
+        /* Icon Styles */
+        .icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            margin-right: 5px; /* Shift icon to the left */
+            vertical-align: middle; /* Align icon vertically */
+            transform: translateY(-1px); /* Move icon 2px above */
+        }
+
+        /* Remove animation styles for static icon */
+        #startCamera .icon,
+        #uploadImage .icon,
+        #generateBarcodes .icon,
+        .edit-actions .generate-button .icon,
+        #capture .icon,
+        #retake .icon,
+        #process .icon {
+            animation: none;
+        }
+
+        /* Overlay Barcode Button */
+        .edit-actions .generate-button {
+            background-color: rgba(1, 41, 85, 0.85);
+            backdrop-filter: blur(4px);
+            width: calc(100% - 20px); /* Make full width with padding */
+            margin: 0 auto; /* Center horizontally */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Remove specific styles for Capture Button */
+        #capture {
+            border-radius: 8px; /* Match other buttons */
+        }
+
+        #capture:hover {
+            background-color: #01346e;
+        }
+
+        /* Keyframes for animations */
+        @keyframes ripple {
+            0% {
+                transform: scale(0, 0);
+                opacity: 0.5;
+            }
+            20% {
+                transform: scale(25, 25);
+                opacity: 0.5;
+            }
+            100% {
+                opacity: 0;
+                transform: scale(40, 40);
+            }
+        }
+
+        .progress-container {
+            width: 96%;
+            max-width: 600px; /* Match parent container width */
+            position: relative;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 0;
+            opacity: 0;
+            transform: translateY(-10px); /* Reduced from -20px */
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .progress-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .progress-container.fade-out {
+            opacity: 0;
+            transform: translateY(-20px);
+            pointer-events: none;
+        }
+
+        /* Add this new style for smooth height transition */
+        .progress-container.removing {
+            margin-top: -100%;
+            transition: margin-top 0.5s ease-in-out;
+        }
+
+        .progress-container:hover {
+            box-shadow: 0 15px 30px rgba(1, 41, 85, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            color: #012955;
+            font-weight: 600;
+        }
+
+        .progress-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .progress-percentage {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0056B3;
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        .progress-percentage.complete {
+            color: #0056B3;
+        }
+
+        .progress-bar-container {
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #0056B3, #012955);
+            border-radius: 10px;
+            transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.4) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            animation: shimmer 2s infinite;
+            transform: skewX(-20deg);
+        }
+
+        .progress-bar::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(255, 255, 255, 0.1),
+                rgba(255, 255, 255, 0.1) 10px,
+                rgba(255, 255, 255, 0) 10px,
+                rgba(255, 255, 255, 0) 20px
+            );
+        }
+
+        .progress-details {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #6c757d;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.5s ease;
+        }
+
+        .progress-details.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .gear-container {
+            position: relative;
+            width: 24px;
+            height: 24px;
+        }
+
+        .gear {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            animation: spin 4s linear infinite;
+        }
+
+        .gear-inner {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 4px;
+            left: 4px;
+            animation: spin 3s linear infinite reverse;
+        }
+
+        .gear-path {
+            fill: #0056B3;
+            transition: fill 0.3s ease;
+        }
+
+        .gear-path.complete {
+            fill: #0056B3;
+        }
+
+        .gear-inner-path {
+            fill: #012955;
+            transition: fill 0.3s ease;
+        }
+
+        .gear-inner-path.complete {
+            fill: #012955;
+        }
+
+        .progress-complete-indicator {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 16px;
+            color: #0056B3;
+            font-weight: 600;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.5s ease;
+        }
+
+        .progress-complete-indicator.visible {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .checkmark {
+            margin-right: 4px;
+            animation: scaleIn 0.5s ease;
+        }
+
+        @keyframes scaleIn {
+            0% { transform: scale(0); }
+            70% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-150%) skewX(-20deg); }
+            100% { transform: translateX(150%) skewX(-20deg); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 9998;
+            pointer-events: none; /* Allow clicks to pass through when hidden */
+        }
+
+        .progress-backdrop.visible {
+            opacity: 1;
+            pointer-events: auto; /* Block clicks when visible */
+            display: flex;
+        }
+
+        .progress-backdrop.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .progress-container {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) translateY(20px);
+            width: calc(100% - 40px);
+            max-width: 400px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 9999;
+        }
+
+        .progress-container.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) translateY(0);
+        }
+
+        .progress-container.fade-out {
+            opacity: 0;
+            visibility: hidden;
+            transform: translate(-50%, -50%) translateY(-20px);
+        }
+    </style>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const preview = document.getElementById('preview');
+        const startButton = document.getElementById('startCamera');
+        const captureButton = document.getElementById('capture');
+        const retakeButton = document.getElementById('retake');
+        const processButton = document.getElementById('process');
+        const loading = document.getElementById('loading');
+        const detectedText = document.getElementById('detectedText');
+        const barcodeContainer = document.getElementById('barcodeContainer');
+        const editableText = document.getElementById('editableText');
+        const generateBarcodesButton = document.getElementById('generateBarcodes');
+        let stream = null;
+        let shouldGenerateBarcodes = false;
+        let originalPosition = null;
+        let originalText = ''; // Add this at the top with other variables
+
+        // Add new variables for file upload
+        const uploadButton = document.getElementById('uploadImage');
+        const imageInput = document.getElementById('imageInput');
+
+        // Add these variables at the top with other declarations
+        let processedResults = [];  // Store all processed results
+        const reverseToggle = document.getElementById('reverseOrder');
+
+        // Add this variable near the top with other declarations
+        let isReversed = false;
+
+        // Add click handler for upload button
+        uploadButton.addEventListener('click', () => {
+            const cameraContainer = document.querySelector('.camera-container');
+            cameraContainer.classList.remove('active');
+            imageInput.click();
+        });
+
+        // Handle file selection
+        imageInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            // Reset processed results before starting new upload
+            processedResults = [];
+            
+            // Show progress container
+            showProgress();
+            
+            // Process each file sequentially 
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                updateFileInfo(file, i + 1, files.length);
+                await processImageFile(file, i + 1, files.length);
+            }
+            
+            // Show completion and update results
+            showComplete();
+            updateResults();
+            
+            // Hide progress after delay
+            setTimeout(hideProgress, 1500);
+        });
+
+        function updateFileInfo(file, current, total) {
+            const fileNameElement = document.querySelector('.file-name');
+            const fileSizeElement = document.querySelector('.file-size');
+            const progressStatus = document.querySelector('.progress-status span');
+            
+            fileNameElement.textContent = `${file.name} (${current}/${total})`;
+            fileSizeElement.textContent = `(${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+            progressStatus.textContent = `Processing image ${current} of ${total}`;
+        }
+
+        async function processImageFile(file, current, total) {
+            const progressBar = document.querySelector('.progress-bar');
+            const progressPercentage = document.querySelector('.progress-percentage');
+            const timeRemaining = document.getElementById('time-remaining');
+            
+            try {
+                const img = await createImageFromFile(file);
+                const result = await Tesseract.recognize(img, 'eng', {
+                    tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-',
+                    tessedit_ocr_engine_mode: Tesseract.PSM.SINGLE_BLOCK,
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            const fileProgress = ((current - 1) / total) * 100;
+                            const currentProgress = (m.progress / total) * 100;
+                            const totalProgress = Math.round(fileProgress + currentProgress);
+                            
+                            progressBar.style.width = `${totalProgress}%`;
+                            progressPercentage.textContent = `${totalProgress}%`;
+                            
+                            // Update time remaining
+                            const remainingFiles = total - current;
+                            const estimatedSecondsPerFile = 30;
+                            const remainingSeconds = Math.round((remainingFiles * estimatedSecondsPerFile) + 
+                                                              (estimatedSecondsPerFile * (1 - m.progress)));
+                            timeRemaining.textContent = remainingSeconds > 60 
+                                ? `${Math.floor(remainingSeconds / 60)}m ${remainingSeconds % 60}s`
+                                : `${remainingSeconds}s`;
+                        }
+                    }
+                });
+
+                const processedText = result.data.text
+                    .split('\n')
+                    .map(line => line.replace(/\s+/g, '').toUpperCase())
+                    .map(line => line.replace(/[^A-Z0-9-]/g, ''))
+                    .filter(line => /^[A-Z0-9-]+$/.test(line))
+                    .join('\n');
+
+                if (processedText) {
+                    processedResults.push(processedText);
+                }
+
+            } catch (err) {
+                console.error('Error processing file:', err);
+            }
+        }
+
+        function createImageFromFile(file) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = URL.createObjectURL(file);
+            });
+        }
+
+        function showComplete() {
+            const progressStatus = document.querySelector('.progress-status span');
+            const progressCompleteIndicator = document.querySelector('.progress-complete-indicator');
+            const gearPath = document.querySelector('.gear-path');
+            const gearInnerPath = document.querySelector('.gear-inner-path');
+            const timeRemaining = document.getElementById('time-remaining');
+            
+            progressStatus.textContent = 'Processing complete';
+            progressCompleteIndicator.classList.add('visible');
+            gearPath.classList.add('complete');
+            gearInnerPath.classList.add('complete');
+            timeRemaining.textContent = '0s';
+        }
+
+        // Add new function to update progress
+        function updateProgress(current, total) {
+            const progressCount = document.getElementById('progressCount');
+            const progressFill = document.getElementById('progressFill');
+            const percentage = Math.round((current / total) * 100);
+            
+            progressCount.textContent = `${current}/${total} (${percentage}%)`;
+            progressFill.style.width = `${percentage}%`;
+        }
+
+        startButton.addEventListener('click', async () => {
+            try {
+                // Add these lines at the start
+                const cameraContainer = document.querySelector('.camera-container');
+                cameraContainer.classList.add('active');
+                
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    }
+                });
+                video.srcObject = stream;
+                startButton.style.display = 'none';
+                uploadButton.style.display = 'none'; // Hide upload button
+                captureButton.style.display = 'block';
+                video.style.display = 'block';
+                preview.style.display = 'none';
+                retakeButton.style.display = 'none';
+                processButton.style.display = 'none';
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                alert('Error accessing camera. Please make sure you have granted camera permissions.');
+            }
+        });
+
+        captureButton.addEventListener('click', async () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            preview.src = canvas.toDataURL('image/jpeg');
+            video.style.display = 'none';
+            preview.style.display = 'block';
+            captureButton.style.display = 'none';
+            retakeButton.style.display = 'block';
+
+            // Show progress bar
+            const fileNameElement = document.querySelector('.file-name');
+            const fileSizeElement = document.querySelector('.file-size');
+            const timeRemaining = document.getElementById('time-remaining');
+            const progressDetails = document.querySelector('.progress-details');
+            
+            // Ensure progress details are visible
+            progressDetails.classList.add('visible');
+            
+            // Set file info
+            fileNameElement.textContent = "Camera Capture";
+            
+            // Get image size
+            const imageData = canvas.toDataURL('image/jpeg');
+            const size = Math.round((imageData.length * 3/4) / 1024);
+            fileSizeElement.textContent = `(${size} KB)`;
+            
+            // Set initial time
+            timeRemaining.textContent = '30s';
+            
+            showProgress();
+            
+            try {
+                const result = await Tesseract.recognize(canvas, 'eng', {
+                    tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-',
+                    tessedit_ocr_engine_mode: Tesseract.PSM.SINGLE_BLOCK,
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            const percent = Math.round(m.progress * 100);
+                            const progressBar = document.querySelector('.progress-bar');
+                            const progressPercentage = document.querySelector('.progress-percentage');
+                            progressBar.style.width = `${percent}%`;
+                            progressPercentage.textContent = `${percent}%`;
+                            
+                            // Update remaining time based on progress
+                            const remaining = Math.round((30 * (100 - percent)) / 100);
+                            timeRemaining.textContent = `${remaining}s`;
+                        }
+                    }
+                });
+
+                const processedText = result.data.text
+                    .split('\n')
+                    .map(line => line.replace(/\s+/g, '').toUpperCase())
+                    .filter(line => /^[A-Z0-9-]+$/.test(line))
+                    .join('\n');
+
+                if (processedText) {
+                    processedResults.push(processedText); // Append new result
+                    updateResults();
+                }
+
+                const progressStatus = document.querySelector('.progress-status span');
+                const progressCompleteIndicator = document.querySelector('.progress-complete-indicator');
+                progressStatus.textContent = 'Processing complete';
+                progressCompleteIndicator.classList.add('visible');
+                
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+            } catch (err) {
+                console.error('OCR Error:', err);
+                alert('OCR Error: ' + err.message);
+            } finally {
+                hideProgress();
+            }
+        });
+
+        retakeButton.addEventListener('click', () => {
+            // Add delay to allow animated icon to work and look good
+            setTimeout(() => {
+                // Hide the preview and show the live video feed again
+                preview.style.display = 'none';
+                video.style.display = 'block';
+                
+                // Clear the canvas for the next capture
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Ensure the video stream remains active
+                if (stream) {
+                    console.log('Stream is active:', stream);
+                    video.srcObject = stream;
+                    video.play(); // Ensure the video element is playing
+                    console.log('Video source set to stream.');
+                } else {
+                    console.log('No active stream found.');
+                }
+                
+                // Reset progress bar immediately
+                const progressBar = document.querySelector('.progress-bar');
+                const progressPercentage = document.querySelector('.progress-percentage');
+                const progressCompleteIndicator = document.querySelector('.progress-complete-indicator');
+                progressBar.style.width = '0%';
+                progressPercentage.textContent = '0%';
+                progressCompleteIndicator.classList.remove('visible');
+                
+                // Log video element properties
+                captureButton.style.display = 'block';
+                retakeButton.style.display = 'none';
+                processButton.style.display = 'none';
+                imageInput.value = ''; // Clear the file input
+            }, 500); // Adjust the delay as needed (500ms in this case)
+        });
+
+        // First, create a shared function for generating barcodes
+        function generateBarcodes() {
+            barcodeContainer.innerHTML = "";
+            let lines = editableText.value.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+            let barcodeCount = 1;
+            const isMobile = window.innerWidth <= 768;
+
+            lines.forEach((line, index) => {
+                const cleanedText = line.replace(/[^A-Z0-9-]/g, ''); // Allow uppercase letters, digits, and dashes
+                if (!cleanedText) return;
+
+                const barcodeDiv = document.createElement('div');
+                barcodeDiv.className = 'barcode-item';
+                
+                // Apply different spacing for mobile
+                if (isMobile) {
+                    if (index !== lines.length - 1) {
+                        barcodeDiv.style.marginBottom = '10px';
+                    }
+                    barcodeDiv.style.padding = '10px';
+                } else {
+                    if (index !== lines.length - 1) {
+                        barcodeDiv.style.marginBottom = '15px';
+                    }
+                }
+
+                const label = document.createElement('span');
+                label.style.display = 'block'; // Make label a block element
+                label.style.textAlign = 'center'; // Center the text
+                label.textContent = 'Barcode ' + barcodeCount;
+                barcodeDiv.appendChild(label);
+
+                const barcodeSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                barcodeSvg.setAttribute("width", "300");
+                barcodeSvg.setAttribute("height", "100");
+                barcodeDiv.appendChild(barcodeSvg);
+
+                barcodeContainer.appendChild(barcodeDiv);
+
+                JsBarcode(barcodeSvg, cleanedText, {
+                    format: "CODE128",
+                    width: 2,
+                    height: 100,
+                    displayValue: true
+                });
+
+                barcodeCount++;
+            });
+
+            // Scroll to show the barcodes
+            setTimeout(() => {
+                barcodeContainer.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+
+        // Main button event listener
+        generateBarcodesButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            generateBarcodes();
+        });
+
+        // Function to check if there is detected text
+        function checkDetectedText() {
+            if (editableText.value.trim() === '') {
+                generateBarcodesButton.disabled = true; // Disable button if no text
+            } else {
+                generateBarcodesButton.disabled = false; // Enable button if there is text
+            }
+        }
+
+        // Add event listener to the editable text area
+        editableText.addEventListener('input', checkDetectedText);
+
+        // Function to auto-resize the text area
+        function autoResize() {
+            this.style.height = 'auto'; // Reset height
+            this.style.height = this.scrollHeight + 'px'; // Set height to scroll height
+        }
+
+        // Add event listener for input
+        editableText.addEventListener('input', autoResize);
+
+        // Remove previous event listeners
+        const textContainer = document.querySelector('.text-container');
+        const footer = document.querySelector('.sticky-footer');
+
+        // Create overlay if it doesn't exist
+        const overlay = document.createElement('div');
+        overlay.className = 'editing-overlay';
+        document.body.appendChild(overlay);
+
+        // Prevent scroll propagation from textarea to body
+        editableText.addEventListener('touchmove', function(e) {
+            e.stopPropagation();
+        }, { passive: false });
+
+        editableText.addEventListener('focus', function() {
+            // Save current scroll position
+            originalPosition = window.scrollY;
+            
+            // Show overlay
+            overlay.classList.add('active');
+            
+            // Add editing mode class
+            textContainer.classList.add('editing-mode');
+            
+            // Hide footer
+            footer.style.display = 'none';
+            
+            let editActions = textContainer.querySelector('.edit-actions');
+            if (!editActions) {
+                editActions = document.createElement('div');
+                editActions.className = 'edit-actions';
+                editActions.style.cssText = `
+                    padding: 10px 0;
+                    background: white;
+                    border-top: 1px solid #eee;
+                    margin-top: auto;
+                    text-align: center;
+                    position: fixed;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    z-index: 2500;
+                `;
+                
+                const generateButton = document.createElement('button');
+                generateButton.className = 'generate-button';
+                generateButton.innerHTML = `
+                    <span class="icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 5v14M8 5v14M12 5v14M17 5v14M21 5v14"></path>
+                        </svg>
+                    </span>
+                    Generate Barcodes
+                `;
+                generateButton.style.cssText = `
+                    padding: 12px 24px;
+                    background: #012955;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-size: 16px;
+                    flex: 1;
+                    min-width: 120px;
+                    margin: 10px;
+                `;
+
+                // Add mousedown event to prevent blur
+                generateButton.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                });
+                
+                generateButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Generate barcodes
+                    barcodeContainer.innerHTML = "";
+                    let lines = editableText.value.split('\n')
+                        .map(line => line.trim())
+                        .filter(line => line.length > 0);
+                    
+                    let barcodeCount = 1;
+                    
+                    lines.forEach(line => {
+                        const cleanedText = line.replace(/[^A-Z0-9-]/g, ''); // Allow uppercase letters, digits, and dashes
+                        if (!cleanedText) return;
+                        
+                        const barcodeDiv = document.createElement('div');
+                        barcodeDiv.className = 'barcode-item';
+                        barcodeDiv.style.marginBottom = '40px';
+                        barcodeDiv.style.display = 'flex';
+                        barcodeDiv.style.flexDirection = 'column';
+                        barcodeDiv.style.alignItems = 'center';
+                        
+                        const label = document.createElement('span');
+                        label.style.display = 'block'; // Make label a block element
+                        label.style.textAlign = 'center'; // Center the text
+                        label.textContent = 'Barcode ' + barcodeCount;
+                        barcodeDiv.appendChild(label);
+                        
+                        const barcodeSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                        barcodeSvg.setAttribute("width", "300");
+                        barcodeSvg.setAttribute("height", "100");
+                        barcodeDiv.appendChild(barcodeSvg);
+                        
+                        barcodeContainer.appendChild(barcodeDiv);
+                        
+                        JsBarcode(barcodeSvg, cleanedText, {
+                            format: "CODE128",
+                            width: 2,
+                            height: 100,
+                            displayValue: true
+                        });
+                        
+                        barcodeCount++;
+                    });
+                    
+                    // After generating barcodes, manually close the overlay
+                    setTimeout(() => {
+                        textContainer.classList.remove('editing-mode');
+                        overlay.classList.remove('active');
+                        footer.style.display = 'flex';
+                        document.body.style.overflow = 'auto';
+                        
+                        // Remove edit actions
+                        if (editActions.parentNode) {
+                            editActions.parentNode.removeChild(editActions);
+                        }
+                        
+                        // Scroll to barcodes
+                        barcodeContainer.scrollIntoView({ behavior: 'smooth' });
+                    }, 100);
+                });
+                
+                editActions.appendChild(generateButton);
+                document.body.appendChild(editActions);
+            }
+            
+            // Prevent body scroll
+            document.body.style.overflow = 'hidden';
+            
+            // Enable scrolling immediately
+            this.style.overflow = 'scroll';
+            this.style.webkitOverflowScrolling = 'touch';
+        });
+
+        editableText.addEventListener('blur', function() {
+            // Remove editing mode class
+            textContainer.classList.remove('editing-mode');
+            
+            // Hide overlay
+            overlay.classList.remove('active');
+            
+            // Show footer
+            footer.style.display = 'flex';
+            
+            // Remove edit actions container
+            const editActions = document.querySelector('.edit-actions');
+            if (editActions && editActions.parentNode) {
+                editActions.parentNode.removeChild(editActions);
+            }
+            
+            // Restore body scroll
+            document.body.style.overflow = 'auto';
+            
+            // Restore scroll position
+            if (originalPosition !== null) {
+                window.scrollTo({
+                    top: originalPosition,
+                    behavior: 'smooth'
+                });
+            }
+        });
+
+        // Modify the overlay click event handler
+        overlay.addEventListener('click', (e) => {
+            // Only close if clicking directly on the overlay, not its children
+            if (e.target === overlay) {
+                editableText.blur();
+            }
+        });
+
+        // Remove previous resize event listeners
+        window.removeEventListener("resize", function () {
+            if (window.innerHeight < 500) {
+                document.body.style.paddingBottom = "200px"; 
+            } else {
+                document.body.style.paddingBottom = "0px"; 
+            }
+        });
+
+        window.removeEventListener("resize", function () {
+            let textContainer = document.querySelector(".text-container");
+            if (window.innerHeight < 500) {
+                textContainer.style.marginBottom = "150px";
+            } else {
+                textContainer.style.marginBottom = "0px"; 
+            }
+        });
+
+        // Add toggle change handler
+        reverseToggle.addEventListener('change', function() {
+            const currentText = editableText.value;
+            if (!currentText.trim()) return;
+            
+            if (this.checked) {
+                if (!isReversed) {
+                    originalText = currentText;
+                    isReversed = true;
+                }
+                const lines = currentText.split('\n');
+                const reversedLines = lines.reverse();
+                editableText.value = reversedLines.join('\n');
+            } else {
+                editableText.value = originalText || '';
+                isReversed = false;
+            }
+            autoResize.call(editableText);
+        });
+
+        // Update the textarea input handler
+        editableText.addEventListener('input', function() {
+            if (!reverseToggle.checked) {
+                originalText = this.value;
+                isReversed = false;
+            }
+            checkDetectedText();
+        });
+
+        // Update results function for consistent behavior
+        function updateResults() {
+            const results = [...processedResults];
+            let finalText = results.join('\n\n');
+            editableText.value = finalText;
+            originalText = finalText; // Store original unreversed version
+            isReversed = false;
+            
+            // If toggle is checked, reverse the lines immediately
+            if (reverseToggle.checked) {
+                const lines = finalText.split('\n');
+                const reversedLines = lines.reverse();
+                editableText.value = reversedLines.join('\n');
+                isReversed = true;
+            }
+            
+            autoResize.call(editableText);
+            editableText.scrollTop = editableText.scrollHeight;
+        }
+
+        const clearTextButton = document.getElementById('clearText');
+    
+        clearTextButton.addEventListener('click', () => {
+            editableText.value = '';
+            originalText = '';
+            isReversed = false;
+            processedResults = [];  // Clear stored results
+            autoResize.call(editableText);
+            barcodeContainer.innerHTML = ''; // Clear barcodes if any
+            generateBarcodesButton.disabled = true; // Disable generate button
+        });
+
+        // Make the whole original order control button trigger the toggle always
+        const originalOrderButton = document.querySelector('.button-row .control-button:nth-child(2)');
+        originalOrderButton.addEventListener('click', function(e) {
+            reverseToggle.checked = !reverseToggle.checked;
+            reverseToggle.dispatchEvent(new Event('change'));
+        });
+
+        // Update the textarea input handler to store original text
+        editableText.addEventListener('input', function() {
+            if (!originalText) {
+                originalText = this.value;
+            }
+            checkDetectedText();
+        });
+
+        // Add the text scramble effect
+        class TextScramble {
+            constructor(el) {
+                this.el = el;
+                this.chars = '!<>-_\\/[]{}—=+*^?#________';
+                this.update = this.update.bind(this);
+            }
+
+            setText(newText) {
+                const oldText = this.el.innerText;
+                const length = Math.max(oldText.length, newText.length);
+                const promise = new Promise((resolve) => this.resolve = resolve);
+                this.queue = [];
+
+                for (let i = 0; i < length; i++) {
+                    const from = oldText[i] || '';
+                    const to = newText[i] || '';
+                    const start = Math.floor(Math.random() * 40);
+                    const end = start + Math.floor(Math.random() * 40);
+                    this.queue.push({ from, to, start, end });
+                }
+
+                cancelAnimationFrame(this.frameRequest);
+                this.frame = 0;
+                this.update();
+                return promise;
+            }
+
+            update() {
+                let output = '';
+                let complete = 0;
+
+                for (let i = 0, n = this.queue.length; i < n; i++) {
+                    let { from, to, start, end, char } = this.queue[i];
+
+                    if (this.frame >= end) {
+                        complete++;
+                        output += to;
+                    } else if (this.frame >= start) {
+                        if (!char || Math.random() < 0.28) {
+                            char = this.randomChar();
+                            this.queue[i].char = char;
+                        }
+                        output += `<span class="dud">${char}</span>`;
+                    } else {
+                        output += from;
+                    }
+                }
+
+                this.el.innerHTML = output;
+
+                if (complete === this.queue.length) {
+                    this.resolve();
+                } else {
+                    this.frameRequest = requestAnimationFrame(this.update);
+                    this.frame++;
+                }
+            }
+
+            randomChar() {
+                return this.chars[Math.floor(Math.random() * this.chars.length)];
+            }
+        }
+
+        // Initialize the text scramble effect
+        document.addEventListener('DOMContentLoaded', () => {
+            const el = document.querySelector('.scramble-text');
+            const fx = new TextScramble(el);
+
+            const phrases = ['EDITABLE STRING DETECTED BY OCR'];
+
+            let counter = 0;
+            const next = () => {
+                fx.setText(phrases[counter]).then(() => {
+                    setTimeout(next, 2000);
+                });
+                counter = (counter + 1) % phrases.length;
+            };
+
+            next();
+        });
+
+        // Add this at the beginning of your script
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load the progress bar template
+            fetch('progressBar.html')
+                .then(response => response.text())
+                .then(html => {
+                    const template = document.createElement('div');
+                    template.innerHTML = html;
+                    const progressBarTemplate = template.querySelector('#progressBarTemplate');
+                    document.getElementById('progressBarContainer').appendChild(progressBarTemplate.cloneNode(true));
+                    initializeProgressBar();
+                });
+        });
+
+        function initializeProgressBar() {
+            const progressBar = document.querySelector('.progress-bar');
+            const progressPercentage = document.querySelector('.progress-percentage');
+            const progressDetails = document.querySelector('.progress-details');
+            const timeRemaining = document.getElementById('time-remaining');
+            const progressCompleteIndicator = document.querySelector('.progress-complete-indicator');
+            const gearPath = document.querySelector('.gear-path');
+            const gearInnerPath = document.querySelector('.gear-inner-path');
+            const progressStatus = document.querySelector('.progress-status span');
+            const progressContainer = document.querySelector('.progress-container');
+            
+            // Add these to your existing imageInput change handler
+            imageInput.addEventListener('change', async (e) => {
+                const files = Array.from(e.target.files);
+                if (files.length === 0) return;
+
+                progressContainer.style.display = 'block';
+                const file = files[0];
+                document.querySelector('.file-name').textContent = file.name;
+                document.querySelector('.file-size').textContent = `(${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                
+                // Process files and update progress
+                let processedCount = 0;
+                const totalFiles = files.length;
+
+                for (const file of files) {
+                    try {
+                        await processFile(file);
+                        processedCount++;
+                        updateProgress(processedCount, totalFiles);
+                    } catch (err) {
+                        console.error('Error processing file:', err);
+                    }
+                }
+
+                // Hide progress after completion
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                }, 1000);
+            });
+        }
+
+        // Add these helper functions near the top
+        function showProgress() {
+            const backdrop = document.querySelector('.progress-backdrop');
+            const container = document.querySelector('.progress-container');
+            const progressDetails = document.querySelector('.progress-details');
+            const progressPercentage = document.querySelector('.progress-percentage');
+            const progressBar = document.querySelector('.progress-bar');
+            
+            // Reset progress elements
+            progressBar.style.width = '0%';
+            progressPercentage.textContent = '0%';
+            progressDetails.classList.add('visible');
+            
+            // Lock scroll
+            document.body.style.overflow = 'hidden';
+            
+            // Show backdrop first
+            backdrop.style.display = 'flex';
+            backdrop.offsetHeight; // Force reflow
+            backdrop.classList.add('visible');
+            
+            // Show container with animation
+            container.style.display = 'block';
+            container.style.visibility = 'visible';
+            container.style.opacity = '1';
+            container.offsetHeight; // Force reflow
+            container.classList.add('visible');
+        }
+
+        function hideProgress() {
+            const backdrop = document.querySelector('.progress-backdrop');
+            const container = document.querySelector('.progress-container');
+            
+            // Immediately enable pointer events on all buttons
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(button => {
+                button.style.pointerEvents = 'auto';
+                button.disabled = false;
+            });
+            
+            // Remove visible classes
+            container.classList.remove('visible');
+            container.classList.add('fade-out');
+            backdrop.classList.remove('visible');
+            backdrop.style.pointerEvents = 'none';
+            
+            // Clean up after animation
+            setTimeout(() => {
+                container.style.display = 'none';
+                container.classList.remove('fade-out');
+                backdrop.style.display = 'none';
+                document.body.style.overflow = '';
+                
+                // Double check that all buttons are enabled
+                buttons.forEach(button => {
+                    button.style.pointerEvents = 'auto';
+                    button.disabled = false;
+                });
+            }, 1000);
+        }
+
+        // Update these variables at the top of your script
+        let retakeTimer = null;
+        const RETAKE_TIMEOUT = 60000; // 60 seconds in milliseconds
+
+        // Update camera container styles
+        const cameraStyles = `
+        .camera-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            width: calc(100% - 20px);
+            margin: 10px auto;
+        }
+
+        .camera-controls button {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .camera-controls #uploadImage {
+            display: block;
+            order: 2;
+        }`;
+
+        const styleSheet = document.createElement("style");
+        styleSheet.textContent = cameraStyles;
+        document.head.appendChild(styleSheet);
+
+        // Update capture button click handler
+        captureButton.addEventListener('click', async () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            preview.src = canvas.toDataURL('image/jpeg');
+            video.style.display = 'none';
+            preview.style.display = 'block';
+            captureButton.style.display = 'none';
+            retakeButton.style.display = 'block';
+            uploadButton.style.display = 'block';
+            uploadButton.style.order = '2';
+
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            
+            // Move upload button to camera controls
+            const cameraControls = document.querySelector('.camera-controls');
+            if (!cameraControls.contains(uploadButton)) {
+                cameraControls.appendChild(uploadButton);
+            }
+            
+            startRetakeTimer();
+            
+            // ...rest of existing capture code for OCR processing...
+        });
+
+        // Update retake button click handler
+        retakeButton.addEventListener('click', async () => {
+            clearInterval(retakeTimer);
+            
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    }
+                });
+                
+                video.srcObject = stream;
+                video.style.display = 'block';
+                preview.style.display = 'none';
+                captureButton.style.display = 'block';
+                retakeButton.style.display = 'none';
+                
+                // Keep upload button visible
+                uploadButton.style.display = 'block';
+                
+                startRetakeTimer();
+                
+            } catch (err) {
+                console.error('Error reinitiating camera:', err);
+                alert('Error accessing camera. Please try again.');
+            }
+        });
+
+        // Update upload button click handler
+        uploadButton.addEventListener('click', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            imageInput.click();
+        });
+
+        // Update image input change handler
+        imageInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            // Store current text if exists
+            const currentText = editableText.value;
+            
+            showProgress();
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                updateFileInfo(file, i + 1, files.length);
+                await processImageFile(file, i + 1, files.length);
+            }
+            
+            // Append new results to existing text
+            if (currentText) {
+                editableText.value = currentText + '\n' + processedResults.join('\n');
+            } else {
+                updateResults();
+            }
+            
+            showComplete();
+            setTimeout(hideProgress, 1500);
+        });
+
+        // Add timer functions
+        function startRetakeTimer() {
+            const timestamp = Date.now();
+            retakeButton.disabled = false;
+            
+            retakeTimer = setInterval(() => {
+                const remaining = Math.round((RETAKE_TIMEOUT - (Date.now() - timestamp)) / 1000);
+                if (remaining <= 0) {
+                    clearInterval(retakeTimer);
+                    resetCameraUI();
+                } else {
+                    retakeButton.textContent = `Retake Photo (${remaining}s)`;
+                    if (remaining === 30) {
+                        retakeButton.style.color = '#ff4757';
+                    }
+                }
+            }, 1000);
+        }
+
+        function resetCameraUI() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            video.style.display = 'none';
+            preview.style.display = 'none';
+            captureButton.style.display = 'none';
+            retakeButton.style.display = 'none';
+            retakeButton.textContent = 'Retake Photo';
+            
+            // Reset camera container
+            const cameraContainer = document.querySelector('.camera-container');
+            cameraContainer.classList.remove('active');
+            
+            // Show initial buttons
+            startButton.style.display = 'block';
+            uploadButton.style.display = 'block';
+            
+            // Move upload button back
+            const mainButtons = document.querySelector('.main-buttons');
+            mainButtons.appendChild(uploadButton);
+            
+            clearInterval(retakeTimer);
+        }
+    </script>
+</body>
+</html>
